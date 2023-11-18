@@ -65,6 +65,10 @@ unsigned long startDisarm = 0;
 
 void setup()
 {
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(WHITE_LED, LOW);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(HORN, LOW);
 
   pinMode(HORN, OUTPUT);
   pinMode(SPEAKER, OUTPUT);
