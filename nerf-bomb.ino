@@ -62,13 +62,14 @@ unsigned long startTime = 0;
 unsigned long startExplode = 0;
 unsigned long startShowPW = 0;
 unsigned long startDisarm = 0;
+bool showingPw = false;
 
 void setup()
 {
   digitalWrite(GREEN_LED, LOW);
-  digitalWrite(WHITE_LED, LOW);
-  digitalWrite(RED_LED, LOW);
-  digitalWrite(HORN, LOW);
+  digitalWrite(WHITE_LED, HIGH);
+  digitalWrite(RED_LED, HIGH);
+  digitalWrite(HORN, HIGH);
 
   pinMode(HORN, OUTPUT);
   pinMode(SPEAKER, OUTPUT);
@@ -134,6 +135,8 @@ void loop()
 
   if (key)
   {
+    // Beep buzzer for 100 ms
+    tone(SPEAKER, 1700, pulseTime);
     if (key == '#')
     {
       submit();
@@ -344,12 +347,17 @@ void playArmedShowPW()
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Enter Password");
+    showingPw = false;
     return;
   }
 
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(password);
+  if (!showingPw)
+  {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(password);
+    showingPw = true;
+  }
 }
 
 void explode()
@@ -359,33 +367,59 @@ void explode()
   displayDigit(0, 2);
   displayDigit(0, 3);
   displayDigit(0, 4);
-  // light white led for 1 second
-  if (!digitalRead(WHITE_LED) && millis() - startExplode < 1000)
+
+  // light white led for .25 seconds and horn for 1 second
+  // White LED and horn are active low
+
+  digitalWrite(WHITE_LED, LOW);
+  digitalWrite(HORN, LOW);
+
+  // if time since start of explode is greater than .25 seconds
+  if (millis() - startExplode > 250)
   {
+    // turn off white led
     digitalWrite(WHITE_LED, HIGH);
   }
+
   // if time since start of explode is greater than 1 second
   if (millis() - startExplode > 1000)
   {
-    // turn off white led
-    digitalWrite(WHITE_LED, LOW);
-    // start horn
+    // turn off horn
     digitalWrite(HORN, HIGH);
   }
 
   // if time since start of explode is greater than 4 seconds
   if (millis() - startExplode > 4000)
   {
-    // turn off horn
-    digitalWrite(HORN, LOW);
-  }
-
-  // if time since start of explode is greater than 7 seconds
-  if (millis() - startExplode > 7000)
-  {
     // reset game
     toPwLength();
   }
+  // if (!digitalRead(WHITE_LED) && millis() - startExplode < 1000)
+  // {
+  //   digitalWrite(WHITE_LED, HIGH);
+  // }
+  // // if time since start of explode is greater than 1 second
+  // if (millis() - startExplode > 1000)
+  // {
+  //   // turn off white led
+  //   digitalWrite(WHITE_LED, LOW);
+  //   // start horn
+  //   digitalWrite(HORN, HIGH);
+  // }
+
+  // // if time since start of explode is greater than 4 seconds
+  // if (millis() - startExplode > 4000)
+  // {
+  //   // turn off horn
+  //   digitalWrite(HORN, LOW);
+  // }
+
+  // // if time since start of explode is greater than 7 seconds
+  // if (millis() - startExplode > 7000)
+  // {
+  //   // reset game
+  //   toPwLength();
+  // }
 }
 
 void displayDigit(uint x, uint digit)
