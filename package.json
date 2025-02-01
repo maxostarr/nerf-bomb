@@ -37,7 +37,12 @@
 		"vite": "^6.0.0"
 	},
 	"dependencies": {
-		"audic": "^3.0.2",
 		"serialport": "^13.0.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"lame",
+			"speaker"
+		]
 	}
 }
