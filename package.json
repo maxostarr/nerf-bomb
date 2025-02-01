@@ -42,7 +42,7 @@
 	"pnpm": {
 		"onlyBuiltDependencies": [
 			"lame",
-			"speaker"
+			"naudiodon"
 		]
 	}
 }
