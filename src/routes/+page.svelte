@@ -1,2 +1,117 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+	type PortOption = {
+		label: string;
+		path: string;
+	};
+	let serialPorts: Array<PortOption> = [];
+	let loadingPorts = false;
+	let port: PortOption | null = null;
+
+	const testAudio = async (pan: 'left' | 'right') => {
+		fetch('/api/test-audio', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ pan })
+		});
+	};
+
+	const getSerialPorts = async () => {
+		loadingPorts = true;
+		const res = await fetch('/api/io/port', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+
+		const data = await res.json();
+		serialPorts = data.map((port: { path: string; manufacturer?: string }) => ({
+			label: `${port.path} - ${port.manufacturer}`,
+			path: port.path
+		}));
+
+		loadingPorts = false;
+	};
+
+	const setSerialPort = async () => {
+		const res = await fetch('/api/io/port', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ path: port?.path })
+		});
+	};
+</script>
+
+<!-- using tailwind -->
+<main
+	class="container mx-auto p-4"
+	style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;"
+>
+	<h1>Nerf Game</h1>
+
+	<aside class="card">
+		<h2>Testing Utilities</h2>
+
+		<div class="join join-horizontal">
+			<button class="btn btn-outline btn-primary join-item" on:click={() => testAudio('left')}
+				>Test Audio Left Channel</button
+			>
+
+			<button class="btn btn-outline btn-primary join-item" on:click={() => testAudio('right')}
+				>Test Audio Right Channel</button
+			>
+		</div>
+
+		<div class="join join-horizontal">
+			<select
+				class="join-item select select-bordered w-full max-w-xs"
+				bind:value={port}
+				on:change={(e) => setSerialPort()}
+			>
+				<option disabled selected>Select Port</option>
+				{#each serialPorts as port}
+					<option>{port.label}</option>
+				{/each}
+			</select>
+			<button class="btn btn-primary join-item" on:click={getSerialPorts}>
+				<!-- Refresh Icon -->
+
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="1.5"
+					stroke="currentColor"
+					class="size-6"
+					class:loading-spin={loadingPorts}
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+					/>
+				</svg>
+			</button>
+		</div>
+	</aside>
+</main>
+
+<style>
+	/* Loading animation */
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
+	}
+
+	.loading-spin {
+		animation: spin 1s linear infinite;
+	}
+</style>
