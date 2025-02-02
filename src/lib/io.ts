@@ -25,20 +25,25 @@ let parser: ReadlineParser
 
 
 export function connect(path: string) {
+  console.log('Connecting to port', path);
   port = new SerialPort({
-    port: path,
+    path,
     baudRate: 115200,
     autoOpen: true,
   }, (err) => {
-    if (err)
+    if (err) {
+      console.error('Error:', err);
       throw err;
+    }
   });
 
-  parser = port.pipe(new ReadlineParser());
+  // parser = port.pipe(new ReadlineParser());
 }
 
 export function write(data: string) {
+  console.log('Writing data:', data);
   if (!port) {
+    console.error('Port not connected');
     throw new Error('Port not connected');
   }
 

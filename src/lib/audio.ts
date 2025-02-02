@@ -1,53 +1,55 @@
 import { spawn } from 'child_process';
 
 const AUDIO_FILE_PATH = '/home/rezo/Downloads/sample-3s.mp3';
-// const AUDIO_FILE_PATH = '/home/rezo/Downloads/PinkPanther30.wav';
 let hwId = 'hw:2,0';
 
 export function playAudio(pan: 'left' | 'right' | 'center') {
-  // Define pan filter based on argument
   let panFilter;
   switch (pan) {
     case 'left':
-      panFilter = 'pan=stereo|c0=FL'; // Route only to left speaker
+      panFilter = 'pan=stereo|c0=c0';
       break;
     case 'right':
-      panFilter = 'pan=stereo|c1=FR'; // Route only to right speaker
+      panFilter = 'pan=stereo|c1=c1';
       break;
     default:
-      panFilter = null; // No pan filter for center
+      panFilter = 'pan=stereo|c0=0.5|c1=0.5';
   }
 
-  const args = ['-nodisp', '-autoexit'];
-  if (panFilter) {
-    args.push('-af', panFilter);
-  }
+  // Base ffmpeg parameters with explicit audio format
+  const ffmpegParams = [
+    '-i', AUDIO_FILE_PATH,
+    // '-filter_complex', `[0:a]${panFilter}[audio]`,
+    '-af', panFilter,
+    '-acodec', 'pcm_s16le',
+    '-ar', '44100',
+    '-ac', '2',
+    '-thread_queue_size', '4096',
+    '-f', 'alsa',
+    hwId
+  ];
 
-  args.push(AUDIO_FILE_PATH);
+  return new Promise<void>((resolve, reject) => {
+    const player = spawn('ffmpeg', ffmpegParams);
 
-  const ffmpegInputParams = ['-i', AUDIO_FILE_PATH, '-map', '[audio]', '-f', 'alsa', hwId];
+    player.on('exit', (code) => {
+      if (code !== 0) {
+        console.error(`Audio playback failed with code ${code}`);
+        reject(new Error(`Audio playback failed with code ${code}`));
+      }
 
-  if (panFilter) {
-    ffmpegInputParams.splice(2, 0, '-filter_complex', `[0:a]${panFilter}[audio]`);
-  }
+      resolve();
+    });
 
-  const player = spawn('ffmpeg', ffmpegInputParams);
+    player.on('error', (err) => {
+      console.error('Failed to start audio playback:', err);
+      reject(err);
+    });
 
-  player.on('exit', (code) => {
-    console.log(`Child process exited with code ${code}`);
-  });
-
-  player.on('error', (err) => {
-    console.error('Failed to start subprocess.', err);
-  });
-
-  player.stdout.on('data', (data) => {
-    console.log(`stdout: ${data}`);
-  });
-
-  player.stderr.on('data', (data) => {
-    console.error(`stderr: ${data}`);
-  });
+    player.stderr.on('data', (data) => {
+      console.error(`data: ${data}`);
+    });
+  })
 }
 
 export function parseAudioDevices(output: string) {

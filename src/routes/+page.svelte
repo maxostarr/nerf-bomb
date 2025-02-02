@@ -22,7 +22,7 @@
 	let audioDevice: AudioDeviceDetails | null;
 
 	const testAudio = async (pan: 'left' | 'right') => {
-		fetch('/api/audio', {
+		fetch('/api/io/control', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -76,6 +76,7 @@
 	};
 
 	const setSerialPort = async () => {
+		console.log(port);
 		const res = await fetch('/api/io/port', {
 			method: 'POST',
 			headers: {
@@ -119,7 +120,7 @@
 			>
 				<option disabled selected>Select Port</option>
 				{#each serialPorts as port}
-					<option>{port.label}</option>
+					<option value={port}>{port.label}</option>
 				{/each}
 			</select>
 			<button class="btn btn-primary join-item" on:click={getSerialPorts}>

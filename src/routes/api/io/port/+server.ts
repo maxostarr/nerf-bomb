@@ -10,12 +10,14 @@ export const GET: RequestHandler = async () => {
 
 export const POST: RequestHandler = async (request) => {
   const { path } = await request.request.json();
+  console.log('Connecting to port', path);
 
   try {
     connect(path);
 
     return json({ success: true });
   } catch (e) {
+    console.error('Error:', e);
     return json({ success: false, error: e });
   }
 }
