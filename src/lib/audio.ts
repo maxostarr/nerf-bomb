@@ -2,31 +2,36 @@ import { spawn } from 'child_process';
 
 const AUDIO_FILE_PATH = '/home/rezo/Downloads/sample-3s.mp3';
 // const AUDIO_FILE_PATH = '/home/rezo/Downloads/PinkPanther30.wav';
-
+let hwId = 'hw:2,0';
 
 export function playAudio(pan: 'left' | 'right' | 'center') {
   // Define pan filter based on argument
   let panFilter;
   switch (pan) {
     case 'left':
-      panFilter = 'pan=stereo|c0=FL';  // Route only to left speaker
+      panFilter = 'pan=stereo|c0=FL'; // Route only to left speaker
       break;
     case 'right':
-      panFilter = 'pan=stereo|c1=FR';  // Route only to right speaker
+      panFilter = 'pan=stereo|c1=FR'; // Route only to right speaker
       break;
     default:
-      panFilter = null;  // No pan filter for center
+      panFilter = null; // No pan filter for center
   }
 
   const args = ['-nodisp', '-autoexit'];
   if (panFilter) {
     args.push('-af', panFilter);
   }
+
   args.push(AUDIO_FILE_PATH);
 
-  console.log('Playing audio with args:', args);
+  const ffmpegInputParams = ['-i', AUDIO_FILE_PATH, '-map', '[audio]', '-f', 'alsa', hwId];
 
-  const player = spawn('ffplay', args);
+  if (panFilter) {
+    ffmpegInputParams.splice(2, 0, '-filter_complex', `[0:a]${panFilter}[audio]`);
+  }
+
+  const player = spawn('ffmpeg', ffmpegInputParams);
 
   player.on('exit', (code) => {
     console.log(`Child process exited with code ${code}`);
@@ -49,13 +54,13 @@ export function parseAudioDevices(output: string) {
   const devices = [];
   const lines = output.toString().split('\n');
 
-
   for (const line of lines) {
     const cardMatch = line.match(/card (\d+): (\w+) \[(.*?)\], device (\d+): (.*?) \[(.*?)\]/);
 
     if (cardMatch) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const [_, cardNum, cardShortName, cardFullName, deviceNum, deviceType, deviceName] = cardMatch;
+      const [_, cardNum, cardShortName, cardFullName, deviceNum, deviceType, deviceName] =
+        cardMatch;
 
       const device = {
         cardNumber: parseInt(cardNum),
@@ -99,9 +104,13 @@ export function getAudioPlaybackDevices() {
   });
 }
 
+export function setAudioPlaybackDevice(id: string) {
+  hwId = id;
+}
+
 // Example usage:
 // getAudioPlaybackDevices()
 //   .then(devices => console.log(JSON.stringify(devices, null, 2)))
 //   .catch(err => console.error('Error:', err));
 
-playAudio('left')
+// playAudio('right', 'hw:2,0');
