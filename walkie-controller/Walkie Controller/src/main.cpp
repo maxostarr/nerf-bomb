@@ -1,6 +1,10 @@
 #include <Arduino.h>
 
-const int LEFT_PIN = 21;
+// Running on arduino nano
+// Left pin is D4
+// Right pin is D5
+
+const int LEFT_PIN = 23;
 const int RIGHT_PIN = 22;
 const int BUFFER_SIZE = 64;
 
