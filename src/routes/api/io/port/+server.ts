@@ -5,19 +5,20 @@ import { SerialPort } from 'serialport';
 export const GET: RequestHandler = async () => {
   const ports = await SerialPort.list();
 
-  return json(ports);
+  return json( ports );
 }
 
-export const POST: RequestHandler = async (request) => {
+export const POST: RequestHandler = async ( request ) => {
   const { path } = await request.request.json();
-  console.log('Connecting to port', path);
+  console.log( 'Connecting to port', path );
 
-  try {
-    connect(path);
-
-    return json({ success: true });
-  } catch (e) {
-    console.error('Error:', e);
-    return json({ success: false, error: e });
-  }
+  return await connect( path )
+    .then( ( param ) => {
+      console.log( 'server - connect success', param )
+      return json( { success: true } )
+    } )
+    .catch( error => {
+      console.log( 'server - connect error', error )
+      return json( { success: false, error: error.toString() } )
+    } )
 }

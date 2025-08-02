@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { addToast } from '../lib/toastStore';
 
 	type PortOption = {
 		label: string;
@@ -83,7 +84,22 @@
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ path: port?.path })
-		});
+		}).then((res) => res.json());
+
+		if (res.success) {
+			addToast({
+				message: 'Connected to device successfully',
+				type: 'success',
+				dismissible: true
+			});
+		} else {
+			addToast({
+				message: `Failed to connect ${res.error}`,
+				type: 'error',
+				dismissible: true,
+				timeout: null
+			});
+		}
 	};
 
 	onMount(() => {
