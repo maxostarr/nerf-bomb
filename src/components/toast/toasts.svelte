@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Toast from './toast.svelte';
 
-	import { dismissToast, toasts } from '../../lib/toastStore';
+	import { dismissToast, toasts } from '$lib/toastStore';
 	import { fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
 </script>
