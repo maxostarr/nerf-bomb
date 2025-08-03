@@ -9,19 +9,28 @@
 	let audioDevice: io.AudioDeviceDetails | null;
 
 	const testAudio = async (pan: 'left' | 'right') => {
-		fetch('/api/io/control', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ pan })
-		});
+		await io.testAudio(pan);
 	};
 
 	const setAudioDevice = async () => {
 		if (!audioDevice) return;
 
-		await io.setAudioDevice(audioDevice.id);
+		const res = await io.setAudioDevice(audioDevice.id);
+
+		if (res.success) {
+			addToast({
+				message: 'Set audio device successfully',
+				type: 'success',
+				dismissible: true
+			});
+		} else {
+			addToast({
+				message: `Failed to set audio device`,
+				type: 'error',
+				dismissible: true,
+				timeout: null
+			});
+		}
 	};
 
 	const getAudioDevices = async () => {

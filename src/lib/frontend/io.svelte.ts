@@ -1,4 +1,4 @@
-import { get, post } from './apiClient';
+import { get, post, put } from './apiClient';
 
 export const devices = $state( {
   serial: [] as PortOption[],
@@ -28,8 +28,6 @@ export async function fetchSerialPorts () {
     throw new Error( 'Failed to fetch serial ports' )
   }
 
-  console.log( response )
-
   devices.serial = response.map( ( port: { path: string; manufacturer?: string } ) => ( {
     label: `${ port.path } - ${ port.manufacturer }`,
     path: port.path
@@ -56,9 +54,9 @@ export async function fetchAudioDevices () {
 }
 
 export async function setAudioDevice ( deviceId: string ) {
-  return await post( 'audio', { hwId: `hw:${ deviceId }` } ).catch( () => null )
+  return await put( 'audio', { hwId: `hw:${ deviceId }` } ).catch( () => ( { success: false } ) )
 }
 
 export async function testAudio ( pan: 'left' | 'right' ) {
-  return post( 'io/control', { pan } ).catch( () => null )
+  return post( 'io/control', { pan } ).catch( () => ( { success: false } ) )
 }
