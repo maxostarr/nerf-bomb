@@ -1,26 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { addToast } from '../lib/toastStore';
+	import { addToast } from '../lib/frontend/toastStore';
+	import * as io from '../lib/frontend/io.svelte';
 
-	type PortOption = {
-		label: string;
-		path: string;
-	};
-	interface AudioDeviceDetails {
-		cardNumber: number;
-		cardName: string;
-		cardShortName: string;
-		deviceNumber: number;
-		deviceType: string;
-		deviceName: string;
-		id: string;
-	}
-	let serialPorts: Array<PortOption> = [];
-	let audioDevices: Array<AudioDeviceDetails> = [];
 	let loadingPorts = false;
 	let loadingAudio = false;
-	let port: PortOption | null = null;
-	let audioDevice: AudioDeviceDetails | null;
+	let port: io.PortOption | null = null;
+	let audioDevice: io.AudioDeviceDetails | null;
 
 	const testAudio = async (pan: 'left' | 'right') => {
 		fetch('/api/io/control', {
@@ -34,57 +20,32 @@
 
 	const setAudioDevice = async () => {
 		if (!audioDevice) return;
-		console.log(audioDevice);
-		const res = await fetch('/api/audio', {
-			method: 'PUT',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ hwId: `hw:${audioDevice.id}` })
-		});
+
+		await io.setAudioDevice(audioDevice.id);
 	};
 
 	const getAudioDevices = async () => {
 		loadingAudio = true;
-		const res = await fetch('/api/audio', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		});
 
-		const data = await res.json();
-		audioDevices = data;
+		await io.fetchAudioDevices();
+
 		loadingAudio = false;
 	};
 
 	const getSerialPorts = async () => {
 		loadingPorts = true;
-		const res = await fetch('/api/io/port', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		});
 
-		const data = await res.json();
-		serialPorts = data.map((port: { path: string; manufacturer?: string }) => ({
-			label: `${port.path} - ${port.manufacturer}`,
-			path: port.path
-		}));
+		await io.fetchSerialPorts();
 
 		loadingPorts = false;
 	};
 
 	const setSerialPort = async () => {
-		console.log(port);
-		const res = await fetch('/api/io/port', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ path: port?.path })
-		}).then((res) => res.json());
+		if (!port) {
+			return;
+		}
+
+		const res = await io.setSerialPort(port);
 
 		if (res.success) {
 			addToast({
@@ -133,7 +94,7 @@
 					on:change={(e) => setSerialPort()}
 				>
 					<option disabled selected>Select Port</option>
-					{#each serialPorts as port}
+					{#each io.devices.serial as port}
 						<option value={port}>{port.label}</option>
 					{/each}
 				</select>
@@ -165,7 +126,7 @@
 					on:change={(e) => setAudioDevice()}
 				>
 					<option disabled selected>Audio Device</option>
-					{#each audioDevices as device}
+					{#each io.devices.audio as device}
 						<option value={device}>{device.cardName} - {device.deviceName}</option>
 					{/each}
 				</select>

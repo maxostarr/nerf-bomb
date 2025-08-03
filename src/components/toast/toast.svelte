@@ -52,4 +52,10 @@
 		background-color: oklch(var(--er));
 		color: oklch(var(--erc));
 	}
+
+	.text {
+		max-width: 80vw;
+		width: max-content;
+		white-space: normal;
+	}
 </style>
