@@ -4,10 +4,10 @@
 	import * as io from '../lib/frontend/io.svelte';
 	import Reload from '../components/icons/reload.svelte';
 
-	let loadingPorts = false;
-	let loadingAudio = false;
-	let port: io.PortOption | null = null;
-	let audioDevice: io.AudioDeviceDetails | null;
+	let loadingPorts = $state(false);
+	let loadingAudio = $state(false);
+	let port: io.PortOption | null = $state(null);
+	let audioDevice: io.AudioDeviceDetails | null = $state();
 
 	const testAudio = async (pan: 'left' | 'right') => {
 		await io.testAudio(pan);
@@ -84,11 +84,11 @@
 
 	<div class="card-body">
 		<div class="join join-horizontal">
-			<button class="btn btn-outline btn-primary join-item" on:click={() => testAudio('left')}
+			<button class="btn btn-outline btn-primary join-item" onclick={() => testAudio('left')}
 				>Test Audio Left Channel</button
 			>
 
-			<button class="btn btn-outline btn-primary join-item" on:click={() => testAudio('right')}
+			<button class="btn btn-outline btn-primary join-item" onclick={() => testAudio('right')}
 				>Test Audio Right Channel</button
 			>
 		</div>
@@ -97,14 +97,14 @@
 			<select
 				class="join-item select select-bordered w-full max-w-xs"
 				bind:value={port}
-				on:change={(e) => setSerialPort()}
+				onchange={(e) => setSerialPort()}
 			>
 				<option disabled selected>Select Port</option>
 				{#each io.devices.serial as port}
 					<option value={port}>{port.label}</option>
 				{/each}
 			</select>
-			<button class="btn btn-primary join-item" on:click={getSerialPorts}>
+			<button class="btn btn-primary join-item" onclick={getSerialPorts}>
 				<span class:loading-spin={loadingPorts}>
 					<Reload />
 				</span>
@@ -115,14 +115,14 @@
 			<select
 				class="join-item select select-bordered w-full max-w-xs"
 				bind:value={audioDevice}
-				on:change={(e) => setAudioDevice()}
+				onchange={(e) => setAudioDevice()}
 			>
 				<option disabled selected>Audio Device</option>
 				{#each io.devices.audio as device}
 					<option value={device}>{device.cardName} - {device.deviceName}</option>
 				{/each}
 			</select>
-			<button class="btn btn-primary join-item" on:click={getAudioDevices}>
+			<button class="btn btn-primary join-item" onclick={getAudioDevices}>
 				<span class:loading-spin={loadingAudio}>
 					<Reload />
 				</span>

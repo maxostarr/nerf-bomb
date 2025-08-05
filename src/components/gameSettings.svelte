@@ -1,5 +1,5 @@
 <script>
-	let roundTime = 60; // Default round time in seconds
+	let roundTime = $state(60); // Default round time in seconds
 </script>
 
 <main>
