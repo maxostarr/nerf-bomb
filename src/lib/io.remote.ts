@@ -26,7 +26,10 @@ export const enableAndPlayAudio = command(Schema.standardSchemaV1(panSchema), as
 			yield* playAudio(pan);
 			yield* Effect.log(`Disabling pan ${pan}`);
 			yield* write(panOff[pan]);
-		})
+		}).pipe(
+			Effect.tapError((error) => Effect.logError(`Failed to enable and play audio: ${error}`)),
+			Effect.withSpan('remote/enableAndPlayAudio')
+		)
 	).catch(({ message }) => {
 		return error(500, message);
 	});
@@ -39,7 +42,10 @@ export const getSerialPorts = query(async () => {
 			const ports = yield* Effect.promise(SerialPort.list);
 			yield* Effect.log(`Found ${ports.length} serial ports`);
 			return ports;
-		})
+		}).pipe(
+			Effect.tapError((error) => Effect.logError(`Failed to get serial ports: ${error}`)),
+			Effect.withSpan('remote/getSerialPorts')
+		)
 	).catch(({ message }) => {
 		return error(500, message);
 	});
@@ -53,7 +59,12 @@ export const connectToSerialPort = command(
 				yield* Effect.log(`Connecting to serial port ${portName}`);
 				yield* connect(portName);
 				yield* Effect.log(`Connected to serial port ${portName}`);
-			})
+			}).pipe(
+				Effect.tapError((error) =>
+					Effect.logError(`Failed to connect to serial port ${portName}: ${error}`)
+				),
+				Effect.withSpan('remote/connectToSerialPort')
+			)
 		).catch(({ message }) => {
 			return error(500, message);
 		});

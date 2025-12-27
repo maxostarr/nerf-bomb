@@ -84,10 +84,11 @@ export const playAudio = (pan: Pan) =>
 			player.stderr.on('data', (data) => {
 				console.error(`data: ${data}`);
 			});
-		});
+		}).pipe(Effect.withSpan('playAudioFFMPEG'));
 	}).pipe(
 		Effect.provide(HwIDStateLive),
-		Effect.tapError((error) => Effect.logError(`Failed to start audio playback: ${error}`))
+		Effect.tapError((error) => Effect.logError(`Failed to start audio playback: ${error}`)),
+		Effect.withSpan('playAudio')
 	);
 
 function getPanFilter(pan: Pan): string {
@@ -133,7 +134,8 @@ export const parseAudioDevices = (output: string) =>
 		Effect.tapErrorCause((cause) => Console.error('Error parsing audio devices:', cause)),
 		Effect.catchAllCause(() =>
 			Effect.fail(new AudioDeviceParseError({ message: 'Failed to parse audio devices' }))
-		)
+		),
+		Effect.withSpan('parseAudioDevices')
 	);
 
 // Update getAudioPlaybackDevices to use the parser
@@ -161,7 +163,8 @@ export const getAudioPlaybackDevices = () =>
 		});
 	}).pipe(
 		Effect.andThen(parseAudioDevices),
-		Effect.tapError((error) => Effect.logError(`Failed to parse audio devices: ${error}`))
+		Effect.tapError((error) => Effect.logError(`Failed to parse audio devices: ${error}`)),
+		Effect.withSpan('getAudioPlaybackDevices')
 	);
 
 export const setAudioPlaybackDevice = (id: string) =>
@@ -170,5 +173,6 @@ export const setAudioPlaybackDevice = (id: string) =>
 		yield* Ref.set(state, id);
 	}).pipe(
 		Effect.provide(HwIDStateLive),
-		Effect.tapError((error) => Effect.logError(`Failed to set audio playback device: ${error}`))
+		Effect.tapError((error) => Effect.logError(`Failed to set audio playback device: ${error}`)),
+		Effect.withSpan('setAudioPlaybackDevice')
 	);

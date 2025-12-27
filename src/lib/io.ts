@@ -22,7 +22,7 @@ const createNewSerialPort = (options: ConstructorParameters<typeof SerialPort>['
 				resume(Effect.succeed(newPort));
 			}
 		});
-	});
+	}).pipe(Effect.withSpan('createNewSerialPort'));
 };
 
 const closePort = (port: SerialPort) => {
@@ -34,7 +34,7 @@ const closePort = (port: SerialPort) => {
 				resume(Effect.succeed(port));
 			}
 		});
-	});
+	}).pipe(Effect.withSpan('closePort'));
 };
 
 const openPort = (port: SerialPort) => {
@@ -46,7 +46,7 @@ const openPort = (port: SerialPort) => {
 				resume(Effect.succeed(port));
 			}
 		});
-	});
+	}).pipe(Effect.withSpan('openPort'));
 };
 
 const writeToPort = (port: SerialPort, data: string) => {
@@ -58,7 +58,7 @@ const writeToPort = (port: SerialPort, data: string) => {
 				resume(Effect.succeed(port));
 			}
 		});
-	});
+	}).pipe(Effect.withSpan('writeToPort'));
 };
 
 export const connect = (path: string) =>
@@ -77,7 +77,8 @@ export const connect = (path: string) =>
 
 		return port;
 	}).pipe(
-		Effect.tapError((error) => Effect.logError(`Failed to connect to port ${path}: ${error}`))
+		Effect.tapError((error) => Effect.logError(`Failed to connect to port ${path}: ${error}`)),
+		Effect.withSpan('connect')
 	);
 
 export const write = (data: string) =>
@@ -90,7 +91,10 @@ export const write = (data: string) =>
 		}
 
 		yield* writeToPort(port, data);
-	}).pipe(Effect.tapError((error) => Effect.logError(`Failed to write data: ${error}`)));
+	}).pipe(
+		Effect.tapError((error) => Effect.logError(`Failed to write data: ${error}`)),
+		Effect.withSpan('write')
+	);
 
 export const listPorts = Effect.promise(() => SerialPort.list());
 
@@ -103,7 +107,10 @@ export const disconnect = Effect.gen(function* () {
 	}
 
 	yield* closePort(port);
-}).pipe(Effect.tapError((error) => Effect.logError(`Failed to disconnect port: ${error}`)));
+}).pipe(
+	Effect.tapError((error) => Effect.logError(`Failed to disconnect port: ${error}`)),
+	Effect.withSpan('disconnect')
+);
 
 export const reconnect = Effect.gen(function* () {
 	yield* Effect.log('Reconnecting port');
@@ -115,8 +122,7 @@ export const reconnect = Effect.gen(function* () {
 
 	yield* closePort(port);
 	yield* openPort(port);
-}).pipe(Effect.tapError((error) => Effect.logError(`Failed to reconnect port: ${error}`)));
-
-export function getPort() {
-	return port;
-}
+}).pipe(
+	Effect.tapError((error) => Effect.logError(`Failed to reconnect port: ${error}`)),
+	Effect.withSpan('reconnect')
+);

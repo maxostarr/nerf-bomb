@@ -4,13 +4,23 @@ import * as audioLib from './audio';
 import { error } from '@sveltejs/kit';
 
 export const playAudio = command(Schema.standardSchemaV1(audioLib.panSchema), async (pan) => {
-	return Effect.runPromise(audioLib.playAudio(pan)).catch(({ message }) => {
+	return Effect.runPromise(
+		audioLib.playAudio(pan).pipe(
+			Effect.tapError((error) => Effect.logError(`Failed to play audio: ${error}`)),
+			Effect.withSpan('remote/playAudio')
+		)
+	).catch(({ message }) => {
 		return error(500, message);
 	});
 });
 
 export const getAudioPlaybackDevices = query(async () => {
-	return Effect.runPromise(audioLib.getAudioPlaybackDevices()).catch(({ message }) => {
+	return Effect.runPromise(
+		audioLib.getAudioPlaybackDevices().pipe(
+			Effect.tapError((error) => Effect.logError(`Failed to get audio playback devices: ${error}`)),
+			Effect.withSpan('remote/getAudioPlaybackDevices')
+		)
+	).catch(({ message }) => {
 		return error(500, message);
 	});
 });
@@ -18,8 +28,13 @@ export const getAudioPlaybackDevices = query(async () => {
 export const setAudioPlaybackDevice = command(
 	Schema.standardSchemaV1(Schema.String),
 	async (deviceId) => {
-		await Effect.runPromise(audioLib.setAudioPlaybackDevice(deviceId)).catch(({ message }) => {
-			return error(500, message);
-		});
+		await Effect.runPromise(
+			audioLib.setAudioPlaybackDevice(deviceId).pipe(
+				Effect.tapError((error) =>
+					Effect.logError(`Failed to set audio playback device: ${error}`)
+				),
+				Effect.withSpan('remote/setAudioPlaybackDevice')
+			)
+		);
 	}
 );
