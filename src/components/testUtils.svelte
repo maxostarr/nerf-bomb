@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { addToast } from '../lib/frontend/toastStore';
 	import * as io from '../lib/frontend/io.svelte';
 	import Reload from '../components/icons/reload.svelte';
+	import { getAudioPlaybackDevices } from '$lib/audio.remote';
+	import { getSerialPorts } from '$lib/io.remote';
 
-	let loadingPorts = $state(false);
-	let loadingAudio = $state(false);
 	let port: io.PortOption | null = $state(null);
 	let audioDevice: io.AudioDeviceDetails | null = $state();
+	const deviceQuery = getAudioPlaybackDevices();
+	const serialQuery = getSerialPorts();
 
 	const testAudio = async (pan: 'left' | 'right') => {
 		await io.testAudio(pan);
@@ -34,22 +35,6 @@
 		}
 	};
 
-	const getAudioDevices = async () => {
-		loadingAudio = true;
-
-		await io.fetchAudioDevices();
-
-		loadingAudio = false;
-	};
-
-	const getSerialPorts = async () => {
-		loadingPorts = true;
-
-		await io.fetchSerialPorts();
-
-		loadingPorts = false;
-	};
-
 	const setSerialPort = async () => {
 		if (!port) {
 			return;
@@ -72,11 +57,6 @@
 			});
 		}
 	};
-
-	onMount(() => {
-		getSerialPorts();
-		getAudioDevices();
-	});
 </script>
 
 <aside class="card">
@@ -97,15 +77,15 @@
 			<select
 				class="join-item select select-bordered w-full max-w-xs"
 				bind:value={port}
-				onchange={(e) => setSerialPort()}
+				onchange={() => setSerialPort()}
 			>
 				<option disabled selected>Select Port</option>
-				{#each io.devices.serial as port}
-					<option value={port}>{port.label}</option>
+				{#each serialQuery.current as port}
+					<option value={port}>{port.path}${port.manufacturer ? " - " : ""}{port.manufacturer}</option>
 				{/each}
 			</select>
-			<button class="btn btn-primary join-item" onclick={getSerialPorts}>
-				<span class:loading-spin={loadingPorts}>
+			<button class="btn btn-primary join-item" onclick={() => serialQuery.refresh()}>
+				<span class:loading-spin={serialQuery.loading}>
 					<Reload />
 				</span>
 			</button>
@@ -115,15 +95,15 @@
 			<select
 				class="join-item select select-bordered w-full max-w-xs"
 				bind:value={audioDevice}
-				onchange={(e) => setAudioDevice()}
+				onchange={() => setAudioDevice()}
 			>
 				<option disabled selected>Audio Device</option>
-				{#each io.devices.audio as device}
+				{#each deviceQuery.current as device}
 					<option value={device}>{device.cardName} - {device.deviceName}</option>
 				{/each}
 			</select>
-			<button class="btn btn-primary join-item" onclick={getAudioDevices}>
-				<span class:loading-spin={loadingAudio}>
+			<button class="btn btn-primary join-item" onclick={() => deviceQuery.refresh()}>
+				<span class:loading-spin={deviceQuery.loading}>
 					<Reload />
 				</span>
 			</button>

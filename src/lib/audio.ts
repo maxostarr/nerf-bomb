@@ -1,7 +1,8 @@
 import { spawn } from 'child_process';
-import { Console, Context, Data, Effect, Layer, Ref } from 'effect';
+import { Console, Context, Data, Effect, Layer, Ref, Schema } from 'effect';
 
-type Pan = 'left' | 'right' | 'center';
+export const PAN_OPTIONS = ['left', 'right', 'center'] as const;
+type Pan = (typeof PAN_OPTIONS)[number];
 
 const AUDIO_FILE_PATH = '/home/rezo/Downloads/sample-3s.mp3';
 
@@ -15,6 +16,10 @@ class HwIDState extends Context.Tag('nerf-bomb/lib/audio/HwIDState')<
 
 // Create a layer from the already-created Ref
 export const HwIDStateLive = Layer.succeed(HwIDState, hwIdRef);
+
+export const panSchema = Schema.Union(
+	...PAN_OPTIONS.filter((value) => value !== 'center').map((value) => Schema.Literal(value))
+);
 
 class AudioPlaybackError extends Data.TaggedError('AudioPlaybackError')<{
 	readonly code?: number;
