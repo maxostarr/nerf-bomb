@@ -38,6 +38,11 @@
 		"vite": "^6.4.1"
 	},
 	"dependencies": {
+		"@effect/opentelemetry": "^0.60.0",
+		"@opentelemetry/sdk-metrics": "^2.2.0",
+		"@opentelemetry/sdk-trace-base": "^2.2.0",
+		"@opentelemetry/sdk-trace-node": "^2.2.0",
+		"@opentelemetry/sdk-trace-web": "^2.2.0",
 		"effect": "^3.19.12",
 		"serialport": "^13.0.0"
 	},
@@ -46,6 +51,7 @@
 			"@serialport/bindings-cpp",
 			"esbuild",
 			"lame",
+			"msgpackr-extract",
 			"naudiodon"
 		]
 	}
