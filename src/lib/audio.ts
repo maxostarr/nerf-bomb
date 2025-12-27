@@ -1,118 +1,154 @@
 import { spawn } from 'child_process';
+import { Console, Context, Data, Effect, Layer, Ref } from 'effect';
+
+type Pan = 'left' | 'right' | 'center';
 
 const AUDIO_FILE_PATH = '/home/rezo/Downloads/sample-3s.mp3';
-let hwId = 'hw:2,0';
 
-export function playAudio(pan: 'left' | 'right' | 'center') {
-  let panFilter;
-  switch (pan) {
-    case 'left':
-      panFilter = 'pan=stereo|c0=c0';
-      break;
-    case 'right':
-      panFilter = 'pan=stereo|c1=c1';
-      break;
-    default:
-      panFilter = 'pan=stereo|c0=0.5|c1=0.5';
-  }
+// Create the Ref synchronously when the module loads
+const hwIdRef = Effect.runSync(Ref.make('hw:2,0'));
 
-  // Base ffmpeg parameters with explicit audio format
-  const ffmpegParams = [
-    '-i', AUDIO_FILE_PATH,
-    // '-filter_complex', `[0:a]${panFilter}[audio]`,
-    '-af', panFilter,
-    '-acodec', 'pcm_s16le',
-    '-ar', '44100',
-    '-ac', '2',
-    '-thread_queue_size', '4096',
-    '-f', 'alsa',
-    hwId
-  ];
+class HwIDState extends Context.Tag('nerf-bomb/lib/audio/HwIDState')<
+	HwIDState,
+	Ref.Ref<string>
+>() {}
 
-  return new Promise<void>((resolve, reject) => {
-    const player = spawn('ffmpeg', ffmpegParams);
+// Create a layer from the already-created Ref
+export const HwIDStateLive = Layer.succeed(HwIDState, hwIdRef);
 
-    player.on('exit', (code) => {
-      if (code !== 0) {
-        console.error(`Audio playback failed with code ${code}`);
-        reject(new Error(`Audio playback failed with code ${code}`));
-      }
+class AudioPlaybackError extends Data.TaggedError('AudioPlaybackError')<{
+	readonly code?: number;
+	readonly message?: string;
+}> {}
+class AudioDeviceParseError extends Data.TaggedError('AudioDeviceParseError')<{
+	readonly code?: number;
+	readonly message?: string;
+}> {}
+class AudioDeviceNotFoundError extends Data.TaggedError('AudioDeviceNotFoundError')<{
+	readonly code?: number;
+	readonly message?: string;
+}> {}
 
-      resolve();
-    });
+export const playAudio = (pan: Pan) =>
+	Effect.gen(function* () {
+		const hwIdState = yield* HwIDState;
+		const panFilter = getPanFilter(pan);
 
-    player.on('error', (err) => {
-      console.error('Failed to start audio playback:', err);
-      reject(err);
-    });
+		// Base ffmpeg parameters with explicit audio format
+		const ffmpegParams = [
+			'-i',
+			AUDIO_FILE_PATH,
+			// '-filter_complex', `[0:a]${panFilter}[audio]`,
+			'-af',
+			panFilter,
+			'-acodec',
+			'pcm_s16le',
+			'-ar',
+			'44100',
+			'-ac',
+			'2',
+			'-thread_queue_size',
+			'4096',
+			'-f',
+			'alsa',
+			yield* Ref.get(hwIdState)
+		];
 
-    player.stderr.on('data', (data) => {
-      console.error(`data: ${data}`);
-    });
-  })
+		yield* Effect.async<void, AudioPlaybackError>((resume) => {
+			const player = spawn('ffmpeg', ffmpegParams);
+
+			player.on('exit', (code) => {
+				if (code && code !== 0) {
+					resume(Effect.fail(new AudioPlaybackError({ code })));
+				} else {
+					resume(Effect.succeed(undefined));
+				}
+			});
+
+			player.on('error', (err) => {
+				console.error('Failed to start audio playback:', err);
+				resume(Effect.fail(new AudioPlaybackError({ message: err.message })));
+			});
+
+			player.stderr.on('data', (data) => {
+				console.error(`data: ${data}`);
+			});
+		});
+	}).pipe(Effect.provide(HwIDStateLive));
+
+function getPanFilter(pan: Pan): string {
+	switch (pan) {
+		case 'left':
+			return 'pan=stereo|c0=c0';
+		case 'right':
+			return 'pan=stereo|c1=c1';
+		default:
+			return 'pan=stereo|c0=0.5|c1=0.5';
+	}
 }
 
-export function parseAudioDevices(output: string) {
-  const devices = [];
-  const lines = output.toString().split('\n');
+export const parseAudioDevices = (output: string) =>
+	Effect.gen(function* () {
+		const devices = [];
+		const lines = output.toString().split('\n');
 
-  for (const line of lines) {
-    const cardMatch = line.match(/card (\d+): (\w+) \[(.*?)\], device (\d+): (.*?) \[(.*?)\]/);
+		for (const line of lines) {
+			const cardMatch = line.match(/card (\d+): (\w+) \[(.*?)\], device (\d+): (.*?) \[(.*?)\]/);
 
-    if (cardMatch) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const [_, cardNum, cardShortName, cardFullName, deviceNum, deviceType, deviceName] =
-        cardMatch;
+			if (cardMatch) {
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				const [_, cardNum, cardShortName, cardFullName, deviceNum, deviceType, deviceName] =
+					cardMatch;
 
-      const device = {
-        cardNumber: parseInt(cardNum),
-        cardName: cardFullName,
-        cardShortName,
-        deviceNumber: parseInt(deviceNum),
-        deviceType,
-        deviceName,
-        id: `${cardNum},${deviceNum}`
-      };
+				const device = {
+					cardNumber: parseInt(cardNum),
+					cardName: cardFullName,
+					cardShortName,
+					deviceNumber: parseInt(deviceNum),
+					deviceType,
+					deviceName,
+					id: `${cardNum},${deviceNum}`
+				};
 
-      devices.push(device);
-    }
-  }
+				devices.push(device);
+			}
+		}
 
-  return devices;
-}
+		return yield* Effect.succeed(devices);
+	}).pipe(
+		Effect.tapErrorCause((cause) => Console.error('Error parsing audio devices:', cause)),
+		Effect.catchAllCause(() =>
+			Effect.fail(new AudioDeviceParseError({ message: 'Failed to parse audio devices' }))
+		)
+	);
 
 // Update getAudioPlaybackDevices to use the parser
-export function getAudioPlaybackDevices() {
-  return new Promise((resolve, reject) => {
-    const aplay = spawn('aplay', ['-l']);
-    let output = '';
+export const getAudioPlaybackDevices = () =>
+	Effect.async<string, AudioDeviceNotFoundError>((resume) => {
+		const aplay = spawn('aplay', ['-l']);
+		let output = '';
 
-    aplay.stdout.on('data', (data) => {
-      output += data.toString();
-    });
+		aplay.stdout.on('data', (data) => {
+			output += data.toString();
+		});
 
-    aplay.on('exit', (code) => {
-      if (code === 0) {
-        const devices = parseAudioDevices(output);
-        resolve(devices);
-      } else {
-        reject(new Error(`Process exited with code ${code}`));
-      }
-    });
+		aplay.on('exit', (code) => {
+			if (code === 0) {
+				resume(Effect.succeed(output));
+			} else {
+				resume(
+					Effect.fail(new AudioDeviceNotFoundError({ message: 'Failed to find audio devices' }))
+				);
+			}
+		});
 
-    aplay.on('error', (err) => {
-      reject(err);
-    });
-  });
-}
+		aplay.on('error', (err) => {
+			resume(Effect.fail(new AudioDeviceNotFoundError({ message: err.message })));
+		});
+	}).pipe(Effect.andThen(parseAudioDevices));
 
-export function setAudioPlaybackDevice(id: string) {
-  hwId = id;
-}
-
-// Example usage:
-// getAudioPlaybackDevices()
-//   .then(devices => console.log(JSON.stringify(devices, null, 2)))
-//   .catch(err => console.error('Error:', err));
-
-// playAudio('right', 'hw:2,0');
+export const setAudioPlaybackDevice = (id: string) =>
+	Effect.gen(function* () {
+		const state = yield* HwIDState;
+		yield* Ref.set(state, id);
+	}).pipe(Effect.provide(HwIDStateLive));

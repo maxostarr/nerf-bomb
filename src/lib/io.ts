@@ -1,88 +1,117 @@
-import { ReadlineParser, SerialPort } from 'serialport';
-
-// export class IO {
-//   private port: SerialPort;
-
-//   static async ListPorts() {
-//     const ports = await SerialPort.list();
-//     return ports;
-//   }
-
-//   constructor(path: string) {
-//     this.port = new SerialPort({
-//       port: path,
-//       baudRate: 115200
-//     });
-//   }
-
-//   public write(data: string) {
-//     this.port.write(data);
-//   }
-// }
+import { Data, Effect } from 'effect';
+import { SerialPort } from 'serialport';
 
 let port: SerialPort | null = null;
-let parser: ReadlineParser
 
+class PortCloseError extends Data.TaggedError('PortCloseError')<Error> {}
+class PortOpenError extends Data.TaggedError('PortOpenError')<Error> {}
+class PortWriteError extends Data.TaggedError('PortWriteError')<Error> {}
 
-export function connect ( path: string ) {
-  console.log( 'Connecting to port', path );
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+class PortNotConnectedError extends Data.TaggedError('PortNotConnectedError')<{}> {}
 
-  return new Promise( ( resolve, reject ) => {
-    if ( port && port.isOpen ) {
-      port.close()
-    }
+const createNewSerialPort = (options: ConstructorParameters<typeof SerialPort>['0']) => {
+	return Effect.async<SerialPort, PortOpenError>((resume) => {
+		const newPort = new SerialPort(options, (err) => {
+			if (err) {
+				resume(Effect.fail(new PortOpenError(err)));
+			} else {
+				resume(Effect.succeed(newPort));
+			}
+		});
+	});
+};
 
-    port = new SerialPort( {
-      path,
-      baudRate: 9600,
-      autoOpen: true,
-    }, ( err ) => {
-      if ( err ) {
-        console.error( 'Port open Error:', err );
-        reject( err )
-        return
-      }
-      resolve( false )
-    } );
-  } )
+const closePort = (port: SerialPort) => {
+	return Effect.async<SerialPort, PortCloseError>((resume) => {
+		port.close((err) => {
+			if (err) {
+				resume(Effect.fail(new PortCloseError(err)));
+			} else {
+				resume(Effect.succeed(port));
+			}
+		});
+	});
+};
+
+const openPort = (port: SerialPort) => {
+	return Effect.async<SerialPort, PortOpenError>((resume) => {
+		port.open((err) => {
+			if (err) {
+				resume(Effect.fail(new PortOpenError(err)));
+			} else {
+				resume(Effect.succeed(port));
+			}
+		});
+	});
+};
+
+const writeToPort = (port: SerialPort, data: string) => {
+	return Effect.async<SerialPort, PortWriteError>((resume) => {
+		port.write(data, (err) => {
+			if (err) {
+				resume(Effect.fail(new PortWriteError(err)));
+			} else {
+				resume(Effect.succeed(port));
+			}
+		});
+	});
+};
+
+export const connect = (path: string) =>
+	Effect.gen(function* () {
+		yield* Effect.log(`Connecting to port ${path}`);
+
+		if (port && port.isOpen) {
+			yield* closePort(port);
+		}
+
+		port = yield* createNewSerialPort({
+			path,
+			baudRate: 9600,
+			autoOpen: true
+		});
+
+		return port;
+	});
+
+export const write = (data: string) =>
+	Effect.gen(function* () {
+		yield* Effect.log(`Writing data: ${data}`);
+
+		if (!port) {
+			yield* Effect.log('Port not connected');
+			throw new PortNotConnectedError();
+		}
+
+		yield* writeToPort(port, data);
+	});
+
+export const listPorts = Effect.promise(() => SerialPort.list());
+
+export const disconnect = Effect.gen(function* () {
+	yield* Effect.log('Disconnecting port');
+
+	if (!port) {
+		yield* Effect.log('Port not connected');
+		throw new PortNotConnectedError();
+	}
+
+	yield* closePort(port);
+});
+
+export const reconnect = Effect.gen(function* () {
+	yield* Effect.log('Reconnecting port');
+
+	if (!port) {
+		yield* Effect.log('Port not connected');
+		throw new PortNotConnectedError();
+	}
+
+	yield* closePort(port);
+	yield* openPort(port);
+});
+
+export function getPort() {
+	return port;
 }
-
-export function write ( data: string ) {
-  console.log( 'Writing data:', data );
-  if ( !port ) {
-    console.error( 'Port not connected' );
-    throw new Error( 'Port not connected' );
-  }
-
-  port.write( data );
-}
-
-export async function listPorts () {
-  return await SerialPort.list();
-}
-
-export async function disconnect () {
-  if ( !port ) {
-    throw new Error( 'Port not connected' );
-  }
-
-  await port.close();
-}
-
-export async function reconnect () {
-  if ( !port ) {
-    throw new Error( 'Port not connected' );
-  }
-
-  await port.close();
-  await port.open();
-}
-
-export function getPort () {
-  return port;
-}
-
-export function getParser () {
-  return parser;
-}
-
