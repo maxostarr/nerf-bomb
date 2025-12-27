@@ -1,17 +1,45 @@
 <script lang="ts">
-	import { addToast } from '../lib/frontend/toastStore';
-	import * as io from '../lib/frontend/io.svelte';
+	import { addToast } from '$lib/frontend/toastStore';
 	import Reload from '../components/icons/reload.svelte';
 	import { getAudioPlaybackDevices, setAudioPlaybackDevice } from '$lib/audio.remote';
-	import { connectToSerialPort, getSerialPorts } from '$lib/io.remote';
+	import { connectToSerialPort, enableAndPlayAudio, getSerialPorts } from '$lib/io.remote';
 
-	let port: io.PortOption | null = $state(null);
-	let audioDevice: io.AudioDeviceDetails | null = $state();
+	interface PortOption {
+		label: string;
+		path: string;
+	}
+
+	interface AudioDeviceDetails {
+		cardNumber: number;
+		cardName: string;
+		cardShortName: string;
+		deviceNumber: number;
+		deviceType: string;
+		deviceName: string;
+		id: string;
+	}
+
+	let port: PortOption | null = $state(null);
+	let audioDevice: AudioDeviceDetails | null = $state(null);
 	const deviceQuery = getAudioPlaybackDevices();
 	const serialQuery = getSerialPorts();
 
 	const testAudio = async (pan: 'left' | 'right') => {
-		await io.testAudio(pan);
+		await enableAndPlayAudio(pan)
+		.then(() => {
+			addToast({
+				message: 'Test audio successful',
+				type: 'success',
+				dismissible: true
+			});
+		}).catch((e) => {
+			addToast({
+				message: `Failed to test audio: ${e.body.message}`,
+				type: 'error',
+				dismissible: true,
+				timeout: null
+			});
+		});
 	};
 
 	const setAudioDevice = async () => {
@@ -50,7 +78,7 @@
 		})
 		.catch((e) => {
 			addToast({
-				message: e.body.message,
+				message: `Failed to connect to device: ${e.body.message}`,
 				type: 'error',
 				dismissible: true,
 				timeout: null
