@@ -6,7 +6,7 @@
 	import { flip } from 'svelte/animate';
 </script>
 
-<section class="toast toast-center toast-bottom">
+<section class="toast toast-right toast-bottom">
 	{#each $toasts as toast (toast.id)}
 		<div
 			in:fly={{ y: 200, duration: 200 }}

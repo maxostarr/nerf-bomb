@@ -3,7 +3,7 @@
 
 	let { dismiss, type, dismissible, children } = $props();
 
-	type AlertType = 'info' | 'success' | 'warning' | 'error';
+	// type AlertType = 'info' | 'success' | 'warning' | 'error';
 
 	// export let type: AlertType = 'error';
 	// $: alertClass = `alert alert-${type}`;

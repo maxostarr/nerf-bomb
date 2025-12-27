@@ -23,16 +23,22 @@ export const panSchema = Schema.Union(
 
 class AudioPlaybackError extends Data.TaggedError('AudioPlaybackError')<{
 	readonly code?: number;
-	readonly message?: string;
-}> {}
+	readonly message: string;
+}> {
+	message: string = 'Audio playback error';
+}
 class AudioDeviceParseError extends Data.TaggedError('AudioDeviceParseError')<{
 	readonly code?: number;
-	readonly message?: string;
-}> {}
+	readonly message: string;
+}> {
+	message: string = 'Audio device parse error';
+}
 class AudioDeviceNotFoundError extends Data.TaggedError('AudioDeviceNotFoundError')<{
 	readonly code?: number;
-	readonly message?: string;
-}> {}
+	readonly message: string;
+}> {
+	message: string = 'Audio device not found';
+}
 
 export const playAudio = (pan: Pan) =>
 	Effect.gen(function* () {
@@ -64,7 +70,7 @@ export const playAudio = (pan: Pan) =>
 
 			player.on('exit', (code) => {
 				if (code && code !== 0) {
-					resume(Effect.fail(new AudioPlaybackError({ code })));
+					resume(Effect.fail(new AudioPlaybackError({ code, message: 'Audio playback failed' })));
 				} else {
 					resume(Effect.succeed(undefined));
 				}

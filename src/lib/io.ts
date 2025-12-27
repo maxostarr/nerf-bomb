@@ -7,8 +7,11 @@ class PortCloseError extends Data.TaggedError('PortCloseError')<Error> {}
 class PortOpenError extends Data.TaggedError('PortOpenError')<Error> {}
 class PortWriteError extends Data.TaggedError('PortWriteError')<Error> {}
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-class PortNotConnectedError extends Data.TaggedError('PortNotConnectedError')<{}> {}
+class PortNotConnectedError extends Data.TaggedError('PortNotConnectedError')<{
+	message?: string;
+}> {
+	message: string = 'Port not connected';
+}
 
 const createNewSerialPort = (options: ConstructorParameters<typeof SerialPort>['0']) => {
 	return Effect.async<SerialPort, PortOpenError>((resume) => {
@@ -83,7 +86,7 @@ export const write = (data: string) =>
 
 		if (!port) {
 			yield* Effect.log('Port not connected');
-			throw new PortNotConnectedError();
+			return yield* Effect.fail(new PortNotConnectedError({}));
 		}
 
 		yield* writeToPort(port, data);
@@ -96,7 +99,7 @@ export const disconnect = Effect.gen(function* () {
 
 	if (!port) {
 		yield* Effect.log('Port not connected');
-		throw new PortNotConnectedError();
+		return yield* Effect.fail(new PortNotConnectedError({}));
 	}
 
 	yield* closePort(port);
@@ -107,7 +110,7 @@ export const reconnect = Effect.gen(function* () {
 
 	if (!port) {
 		yield* Effect.log('Port not connected');
-		throw new PortNotConnectedError();
+		return yield* Effect.fail(new PortNotConnectedError({}));
 	}
 
 	yield* closePort(port);
