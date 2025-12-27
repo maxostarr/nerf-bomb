@@ -79,7 +79,10 @@ export const playAudio = (pan: Pan) =>
 				console.error(`data: ${data}`);
 			});
 		});
-	}).pipe(Effect.provide(HwIDStateLive));
+	}).pipe(
+		Effect.provide(HwIDStateLive),
+		Effect.tapError((error) => Effect.logError(`Failed to start audio playback: ${error}`))
+	);
 
 function getPanFilter(pan: Pan): string {
 	switch (pan) {
@@ -150,10 +153,16 @@ export const getAudioPlaybackDevices = () =>
 		aplay.on('error', (err) => {
 			resume(Effect.fail(new AudioDeviceNotFoundError({ message: err.message })));
 		});
-	}).pipe(Effect.andThen(parseAudioDevices));
+	}).pipe(
+		Effect.andThen(parseAudioDevices),
+		Effect.tapError((error) => Effect.logError(`Failed to parse audio devices: ${error}`))
+	);
 
 export const setAudioPlaybackDevice = (id: string) =>
 	Effect.gen(function* () {
 		const state = yield* HwIDState;
 		yield* Ref.set(state, id);
-	}).pipe(Effect.provide(HwIDStateLive));
+	}).pipe(
+		Effect.provide(HwIDStateLive),
+		Effect.tapError((error) => Effect.logError(`Failed to set audio playback device: ${error}`))
+	);

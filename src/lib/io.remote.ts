@@ -4,6 +4,7 @@ import { panSchema } from './audio';
 import { connect, write } from './io';
 import { playAudio } from './audio';
 import { SerialPort } from 'serialport';
+import { error } from '@sveltejs/kit';
 
 const panOn = {
 	left: 'L',
@@ -26,7 +27,9 @@ export const enableAndPlayAudio = command(Schema.standardSchemaV1(panSchema), as
 			yield* Effect.log(`Disabling pan ${pan}`);
 			yield* write(panOff[pan]);
 		})
-	);
+	).catch(({ message }) => {
+		return error(500, message);
+	});
 });
 
 export const getSerialPorts = query(async () => {
@@ -34,10 +37,12 @@ export const getSerialPorts = query(async () => {
 		Effect.gen(function* () {
 			yield* Effect.log(`Getting serial ports`);
 			const ports = yield* Effect.promise(SerialPort.list);
-			yield* Effect.log(`Found ${ports.length} serial ports`, ports);
+			yield* Effect.log(`Found ${ports.length} serial ports`);
 			return ports;
 		})
-	);
+	).catch(({ message }) => {
+		return error(500, message);
+	});
 });
 
 export const connectToSerialPort = command(
@@ -49,6 +54,8 @@ export const connectToSerialPort = command(
 				yield* connect(portName);
 				yield* Effect.log(`Connected to serial port ${portName}`);
 			})
-		);
+		).catch(({ message }) => {
+			return error(500, message);
+		});
 	}
 );

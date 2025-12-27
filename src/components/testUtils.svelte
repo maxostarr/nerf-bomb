@@ -2,8 +2,8 @@
 	import { addToast } from '../lib/frontend/toastStore';
 	import * as io from '../lib/frontend/io.svelte';
 	import Reload from '../components/icons/reload.svelte';
-	import { getAudioPlaybackDevices } from '$lib/audio.remote';
-	import { getSerialPorts } from '$lib/io.remote';
+	import { getAudioPlaybackDevices, setAudioPlaybackDevice } from '$lib/audio.remote';
+	import { connectToSerialPort, getSerialPorts } from '$lib/io.remote';
 
 	let port: io.PortOption | null = $state(null);
 	let audioDevice: io.AudioDeviceDetails | null = $state();
@@ -17,22 +17,22 @@
 	const setAudioDevice = async () => {
 		if (!audioDevice) return;
 
-		const res = await io.setAudioDevice(audioDevice.id);
-
-		if (res.success) {
+		await setAudioPlaybackDevice(audioDevice.id)
+		.then(() => {
 			addToast({
 				message: 'Set audio device successfully',
 				type: 'success',
 				dismissible: true
 			});
-		} else {
+		})
+		.catch((e) => {
 			addToast({
-				message: `Failed to set audio device`,
+				message: `Failed to set audio device: ${e.body.message}`,
 				type: 'error',
 				dismissible: true,
 				timeout: null
 			});
-		}
+		})
 	};
 
 	const setSerialPort = async () => {
@@ -40,22 +40,22 @@
 			return;
 		}
 
-		const res = await io.setSerialPort(port);
-
-		if (res.success) {
+		await connectToSerialPort(port.path)
+		.then(() => {
 			addToast({
 				message: 'Connected to device successfully',
 				type: 'success',
 				dismissible: true
 			});
-		} else {
+		})
+		.catch((e) => {
 			addToast({
-				message: `Failed to connect ${res.error}`,
+				message: e.body.message,
 				type: 'error',
 				dismissible: true,
 				timeout: null
 			});
-		}
+		})
 	};
 </script>
 
@@ -81,7 +81,7 @@
 			>
 				<option disabled selected>Select Port</option>
 				{#each serialQuery.current as port}
-					<option value={port}>{port.path}${port.manufacturer ? " - " : ""}{port.manufacturer}</option>
+					<option value={port}>{port.path}{port.manufacturer ? " - " : ""}{port.manufacturer}</option>
 				{/each}
 			</select>
 			<button class="btn btn-primary join-item" onclick={() => serialQuery.refresh()}>

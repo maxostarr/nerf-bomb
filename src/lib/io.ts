@@ -73,7 +73,9 @@ export const connect = (path: string) =>
 		});
 
 		return port;
-	});
+	}).pipe(
+		Effect.tapError((error) => Effect.logError(`Failed to connect to port ${path}: ${error}`))
+	);
 
 export const write = (data: string) =>
 	Effect.gen(function* () {
@@ -85,7 +87,7 @@ export const write = (data: string) =>
 		}
 
 		yield* writeToPort(port, data);
-	});
+	}).pipe(Effect.tapError((error) => Effect.logError(`Failed to write data: ${error}`)));
 
 export const listPorts = Effect.promise(() => SerialPort.list());
 
@@ -98,7 +100,7 @@ export const disconnect = Effect.gen(function* () {
 	}
 
 	yield* closePort(port);
-});
+}).pipe(Effect.tapError((error) => Effect.logError(`Failed to disconnect port: ${error}`)));
 
 export const reconnect = Effect.gen(function* () {
 	yield* Effect.log('Reconnecting port');
@@ -110,7 +112,7 @@ export const reconnect = Effect.gen(function* () {
 
 	yield* closePort(port);
 	yield* openPort(port);
-});
+}).pipe(Effect.tapError((error) => Effect.logError(`Failed to reconnect port: ${error}`)));
 
 export function getPort() {
 	return port;

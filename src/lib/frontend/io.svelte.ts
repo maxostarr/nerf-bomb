@@ -1,5 +1,5 @@
 import { getAudioPlaybackDevices, setAudioPlaybackDevice } from '$lib/audio.remote';
-import { get, post } from './apiClient';
+import { connectToSerialPort, enableAndPlayAudio } from '$lib/io.remote';
 
 export const devices = $state({
 	serial: [] as PortOption[],
@@ -35,22 +35,10 @@ export async function fetchSerialPorts() {
 }
 
 export async function setSerialPort(port: PortOption) {
-	return await post('io/port', { path: port.path }).catch((e) => ({
-		success: false,
-		error: `HTTP error: ${e}`
-	}));
+	connectToSerialPort(port.path);
 }
 
 export async function fetchAudioDevices() {
-	// const res = await get( 'audio' )
-	//   .catch( () => null )
-
-	// if ( !res ) {
-	//   throw new Error( 'Failed to fetch audio devices' )
-	// }
-
-	// devices.audio = res
-
 	console.log('Fetching audio devices...');
 	const devicesRes = await getAudioPlaybackDevices();
 	console.log('Audio devices:', devicesRes);
@@ -59,12 +47,10 @@ export async function fetchAudioDevices() {
 	return devices;
 }
 
-export async function setAudioDevice(deviceId: string) {
-	// return await put('audio', { hwId: `hw:${deviceId}` }).catch(() => ({ success: false }));
-
-	return setAudioPlaybackDevice(`hw:${deviceId}`);
-}
+// export async function setAudioDevice(deviceId: string) {
+// 	return setAudioPlaybackDevice(`hw:${deviceId}`);
+// }
 
 export async function testAudio(pan: 'left' | 'right') {
-	return post('io/control', { pan }).catch(() => ({ success: false }));
+	return enableAndPlayAudio(pan);
 }
