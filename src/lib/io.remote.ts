@@ -5,6 +5,7 @@ import { connect, write } from './io';
 import { playAudio } from './audio';
 import { SerialPort } from 'serialport';
 import { error } from '@sveltejs/kit';
+import { NodeSdkLive } from './telemetry';
 
 const panOn = {
 	left: 'L',
@@ -28,7 +29,9 @@ export const enableAndPlayAudio = command(Schema.standardSchemaV1(panSchema), as
 			yield* write(panOff[pan]);
 		}).pipe(
 			Effect.tapError((error) => Effect.logError(`Failed to enable and play audio: ${error}`)),
-			Effect.withSpan('remote/enableAndPlayAudio')
+			Effect.tap(Effect.annotateCurrentSpan('pan', pan)),
+			Effect.withSpan('remote/enableAndPlayAudio'),
+			Effect.provide(NodeSdkLive)
 		)
 	).catch(({ message }) => {
 		return error(500, message);
@@ -44,7 +47,8 @@ export const getSerialPorts = query(async () => {
 			return ports;
 		}).pipe(
 			Effect.tapError((error) => Effect.logError(`Failed to get serial ports: ${error}`)),
-			Effect.withSpan('remote/getSerialPorts')
+			Effect.withSpan('remote/getSerialPorts'),
+			Effect.provide(NodeSdkLive)
 		)
 	).catch(({ message }) => {
 		return error(500, message);
@@ -63,7 +67,8 @@ export const connectToSerialPort = command(
 				Effect.tapError((error) =>
 					Effect.logError(`Failed to connect to serial port ${portName}: ${error}`)
 				),
-				Effect.withSpan('remote/connectToSerialPort')
+				Effect.withSpan('remote/connectToSerialPort'),
+				Effect.provide(NodeSdkLive)
 			)
 		).catch(({ message }) => {
 			return error(500, message);
