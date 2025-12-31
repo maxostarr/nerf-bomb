@@ -22,13 +22,14 @@ export const enableAndPlayAudio = command(Schema.standardSchemaV1(panSchema), as
 		Effect.gen(function* () {
 			yield* Effect.log(`Enabling pan ${pan}`);
 			yield* write(panOn[pan]);
-			yield* Effect.sleep('500 millis');
+			yield* Effect.sleep('1 seconds');
 			yield* Effect.log(`Playing audio with pan ${pan}`);
 			yield* playAudio(pan);
 			yield* Effect.log(`Disabling pan ${pan}`);
 			yield* write(panOff[pan]);
 		}).pipe(
 			Effect.tapError((error) => Effect.logError(`Failed to enable and play audio: ${error}`)),
+			Effect.tapError(() => write(panOff[pan])),
 			Effect.tap(Effect.annotateCurrentSpan('pan', pan)),
 			Effect.withSpan('remote/enableAndPlayAudio'),
 			Effect.provide(NodeSdkLive)

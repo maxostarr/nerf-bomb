@@ -45,6 +45,8 @@ export const playAudio = (pan: Pan) =>
 		const hwIdState = yield* HwIDState;
 		const panFilter = getPanFilter(pan);
 
+		yield* Effect.log(`Playing audio with pan ${pan} to ${yield* Ref.get(hwIdState)}`);
+
 		// Base ffmpeg parameters with explicit audio format
 		const ffmpegParams = [
 			'-i',
@@ -62,7 +64,7 @@ export const playAudio = (pan: Pan) =>
 			'4096',
 			'-f',
 			'alsa',
-			yield* Ref.get(hwIdState)
+			`hw:${yield* Ref.get(hwIdState)}`
 		];
 
 		yield* Effect.async<void, AudioPlaybackError>((resume) => {
@@ -170,6 +172,7 @@ export const getAudioPlaybackDevices = () =>
 export const setAudioPlaybackDevice = (id: string) =>
 	Effect.gen(function* () {
 		const state = yield* HwIDState;
+		yield* Effect.log(`Setting audio playback device to ${id}`);
 		yield* Ref.set(state, id);
 	}).pipe(
 		Effect.provide(HwIDStateLive),
