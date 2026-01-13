@@ -16,7 +16,13 @@ const config = {
 			// Experimental features can be enabled here
 			// For example, to enable the new SvelteKit router:
 			// router: true,
-			remoteFunctions: true
+			remoteFunctions: true,
+			tracing: {
+				server: true
+			},
+			instrumentation: {
+				server: true
+			}
 		}
 	},
 	compilerOptions: {
