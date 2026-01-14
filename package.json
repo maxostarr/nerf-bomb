@@ -39,12 +39,16 @@
 	},
 	"dependencies": {
 		"@effect/opentelemetry": "^0.60.0",
+		"@opentelemetry/auto-instrumentations-node": "^0.67.3",
 		"@opentelemetry/exporter-trace-otlp-http": "^0.208.0",
+		"@opentelemetry/exporter-trace-otlp-proto": "^0.209.0",
 		"@opentelemetry/sdk-metrics": "^2.3.0",
+		"@opentelemetry/sdk-node": "^0.209.0",
 		"@opentelemetry/sdk-trace-base": "^2.3.0",
 		"@opentelemetry/sdk-trace-node": "^2.3.0",
 		"@opentelemetry/sdk-trace-web": "^2.3.0",
 		"effect": "^3.19.14",
+		"import-in-the-middle": "^2.0.2",
 		"serialport": "^13.0.0"
 	},
 	"pnpm": {
@@ -53,7 +57,8 @@
 			"esbuild",
 			"lame",
 			"msgpackr-extract",
-			"naudiodon"
+			"naudiodon",
+			"protobufjs"
 		]
 	}
 }
