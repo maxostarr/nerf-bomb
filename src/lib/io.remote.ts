@@ -44,7 +44,7 @@ export const getSerialPorts = query(async () => {
 		Effect.gen(function* () {
 			yield* Effect.log(`Getting serial ports`);
 			const ports = yield* Effect.promise(SerialPort.list);
-			yield* Effect.log(`Found ${ports.length} serial ports`);
+			yield* Effect.log(`Found ${ports.length} serial ports`, { ports });
 			return ports;
 		}).pipe(
 			Effect.tapError((error) => Effect.logError(`Failed to get serial ports: ${error}`)),
